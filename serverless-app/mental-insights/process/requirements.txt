@@ -1,0 +1,6 @@
+psycopg2-binary==2.9.10
+numpy==2.2.0
+pandas==2.3.0
+statsmodels==0.14.4
+xgboost==3.0.2
+shap==0.48.0

@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sample SAM app with PostgreSQL, DynamoDB, TypeScript & Python Lambdas.
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+
+  SharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: shared-layer
+      Description: Common utilities and model code
+      ContentUri: layers/shared
+      RetentionPolicy: Retain
+      CompatibleRuntimes:
+        - python3.11
+
+  GetMentalInsightsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: mental-insights/get
+      Handler: src/handlers/get_insights_handler.lambda_handler
+      Runtime: python3.11
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /mental-insights
+            Method: get
+      Environment: &DB_ENV
+        Variables:
+          PGHOST: "host.docker.internal"
+          PGUSER: "postgres"
+          PGPASSWORD: "example"
+          PGDATABASE: "users"
+          PGPORT: "5432"
+      Layers:
+        - !Ref SharedLayer
+
+
+  PushMentalInsightsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: mental-insights/process
+      Handler: src/handlers/process_insights_handler.lambda_handler
+      Runtime: python3.11
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /process-mental-insights
+            Method: post
+      Environment: *DB_ENV
+      Layers:
+        - !Ref SharedLayer
+
+
+  GetDailyInsightsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: daily-mental-insights/get
+      Handler: src/handlers/get_daily_insights_handler.lambda_handler
+      Runtime: python3.11
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /daily-mental-insights
+            Method: get
+      Environment: *DB_ENV
+      Layers:
+        - !Ref SharedLayer
+
+
+  PushDailyInsightsLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: daily-mental-insights/process
+      Handler: src/handlers/process_daily_insights_handler.lambda_handler
+      Runtime: python3.11
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Path: /process-daily-mental-insights
+            Method: post
+        DailyTrigger:
+            Type: Schedule
+            Properties:
+              Schedule: cron(0 2 * * ? *)  # 2 AM UTC daily  
+              Input: |
+                {
+                  "scheduler": true
+                }    
+      Environment: *DB_ENV
+      Layers:
+        - !Ref SharedLayer  
+
+          
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint"
+    Value:
+      Fn::Sub: "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/user"
