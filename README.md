@@ -1,5 +1,3 @@
-## do i need to include the dependencies I used for the ipynb
-# do i need diff dependencies per endpoint?"
 Challenge 1: Data Scientist 
 
 ===Goal: Analyze mental health data from the IoT dataset and deploy insights via the serverless app.
